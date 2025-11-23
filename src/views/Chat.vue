@@ -1,5 +1,5 @@
 <template>
-  <div class="chat" style="display: grid; grid-template-columns: 280px 1fr; gap: 20px; height: calc(100vh - 100px); max-height: calc(100vh - 100px);">
+  <div class="chat" style="display: grid; grid-template-columns: 180px 1fr; gap: 20px; height: calc(100vh - 100px); max-height: calc(100vh - 100px); padding: 0;">
     <!-- Sidebar: sessions list -->
     <aside class="card" style="display: flex; flex-direction: column; padding: 0; overflow: hidden;">
       <div style="padding: 16px; border-bottom: 1px solid #565869; display: flex; justify-content: space-between; align-items: center;">
@@ -87,14 +87,60 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, watch } from 'vue'
+import { ref, onMounted, nextTick, watch, inject } from 'vue'
 import { useRoute } from 'vue-router'
 import { chatAPI, sessionAPI } from '../services/api'
 import { useAuthStore } from '../stores/auth'
 
+// 注入更新resume_md的函数
+const updateResumeMd = inject('updateResumeMd', null)
+
 // Route and store setup
 const route = useRoute()
 const authStore = useAuthStore()
+
+// 清理resume_md的辅助函数
+const cleanResumeMd = (md) => {
+  if (!md || typeof md !== 'string') return md || ''
+  
+  let cleaned = md.trim()
+  
+  // 1. 尝试解析完整JSON对象
+  try {
+    const parsed = JSON.parse(cleaned)
+    if (parsed.resume_md) return parsed.resume_md
+    if (parsed.message) return parsed.message
+    if (typeof parsed === 'string') return parsed
+  } catch (e) {
+    // 不是完整JSON，继续处理
+  }
+  
+  // 2. 尝试提取JSON对象中的message或resume_md字段值
+  const jsonObjectMatch = cleaned.match(/\{[^}]*["']?(?:message|resume_md)["']?\s*:\s*["']([^"']*(?:\\.[^"']*)*)["'][^}]*\}/i)
+  if (jsonObjectMatch && jsonObjectMatch[1]) {
+    cleaned = jsonObjectMatch[1]
+  } else {
+    // 3. 移除开头的JSON key格式
+    cleaned = cleaned.replace(/^[^"]*["']?(?:message|resume_md)["']?\s*:\s*["']?/i, '')
+    cleaned = cleaned.replace(/["']?\s*[,}]\s*$/i, '')
+    cleaned = cleaned.replace(/["']\s*$/i, '')
+  }
+  
+  // 4. 移除markdown代码块标记
+  cleaned = cleaned.replace(/^```(?:markdown)?\s*/i, '')
+  cleaned = cleaned.replace(/\s*```$/i, '')
+  
+  // 5. 处理JSON转义字符
+  cleaned = cleaned.replace(/\\\\/g, '\\ESCAPED_BACKSLASH\\')
+  cleaned = cleaned.replace(/\\n/g, '\n')
+  cleaned = cleaned.replace(/\\r/g, '\r')
+  cleaned = cleaned.replace(/\\t/g, '\t')
+  cleaned = cleaned.replace(/\\"/g, '"')
+  cleaned = cleaned.replace(/\\'/g, "'")
+  cleaned = cleaned.replace(/\\ESCAPED_BACKSLASH\\/g, '\\')
+  
+  return cleaned.trim()
+}
 
 // Reactive state
 const messages = ref([])
@@ -259,6 +305,20 @@ const sendMessage = async () => {
         timestamp: new Date().toISOString()
       }
     }
+    
+    // 更新Resume的markdown内容
+    if (response.resume_md && updateResumeMd) {
+      const cleanedMd = cleanResumeMd(response.resume_md)
+      console.log('Updating resume_md:', cleanedMd.substring(0, 100) + '...')
+      updateResumeMd(cleanedMd)
+    } else {
+      console.log('No resume_md in response or updateResumeMd not available', {
+        hasResumeMd: !!response.resume_md,
+        hasUpdateFn: !!updateResumeMd,
+        response: response
+      })
+    }
+    
     // If still empty, try reloading from history
     if (!assistantText) await loadHistory()
   } catch (error) {

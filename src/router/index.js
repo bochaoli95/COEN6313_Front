@@ -49,7 +49,12 @@ const routes = [
     name: 'Users',
     component: () => import('../views/Users.vue'),
     meta: { requiresAuth: true }
-  }
+  },
+  {
+    path: '/studio',    
+    name: 'Studio',
+    component: () => import('../views/Studio.vue'),
+  },
 ]
 
 // Create router instance
