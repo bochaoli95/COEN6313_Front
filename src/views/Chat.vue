@@ -92,8 +92,9 @@ import { useRoute } from 'vue-router'
 import { chatAPI, sessionAPI } from '../services/api'
 import { useAuthStore } from '../stores/auth'
 
-// 注入更新resume_md的函数
+// 注入更新resume_md和sessionId的函数
 const updateResumeMd = inject('updateResumeMd', null)
+const updateSessionId = inject('updateSessionId', null)
 
 // Route and store setup
 const route = useRoute()
@@ -155,6 +156,11 @@ onMounted(async () => {
   sessionId.value = route.params.sessionId
   const userId = authStore.userId
   
+  // 通知ResumeWorkspace当前Session
+  if (sessionId.value && updateSessionId) {
+    updateSessionId(sessionId.value)
+  }
+  
   // Load sessions for sidebar
   await loadSessions()
 
@@ -197,6 +203,13 @@ const loadSessions = async () => {
 const selectSession = async (id) => {
   if (!id) return
   sessionId.value = id
+  
+  // 通知ResumeWorkspace切换Session（使用chat的sessionId）
+  if (updateSessionId) {
+    console.log('Switching to session:', id)
+    updateSessionId(id)
+  }
+  
   await loadHistory()
 }
 
@@ -213,6 +226,12 @@ const createNewSession = async () => {
     }
     const created = await sessionAPI.create(newSession)
     sessionId.value = created.session_id
+    
+    // 通知ResumeWorkspace切换Session
+    if (updateSessionId) {
+      updateSessionId(sessionId.value)
+    }
+    
     await loadSessions()
     messages.value = []
   } catch (e) {

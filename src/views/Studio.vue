@@ -17,15 +17,24 @@ import ResumeWorkspace from './ResumeWorkspace.vue'
 
 // 共享的resume_md状态
 const resumeMd = ref('')
+// 共享的sessionId状态
+const currentSessionId = ref(null)
 
 // 更新resume_md的函数
 const updateResumeMd = (md) => {
   resumeMd.value = md
 }
 
+// 更新sessionId的函数
+const updateSessionId = (id) => {
+  currentSessionId.value = id
+}
+
 // 提供给子组件
 provide('resumeMd', resumeMd)
 provide('updateResumeMd', updateResumeMd)
+provide('currentSessionId', currentSessionId)
+provide('updateSessionId', updateSessionId)
 </script>
 
 <style scoped>

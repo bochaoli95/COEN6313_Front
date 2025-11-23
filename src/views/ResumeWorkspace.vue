@@ -92,8 +92,9 @@ export default {
     ResumeRender
   },
   setup() {
-    // 注入共享的resume_md
+    // 注入共享的resume_md和sessionId
     const resumeMd = inject('resumeMd', ref(''))
+    const currentSessionId = inject('currentSessionId', ref(null))
     
     console.log('ResumeWorkspace: resumeMd injected', resumeMd)
     
@@ -425,19 +426,42 @@ Huangdu Institute of Technology
       }
     }
 
-    // 保存内容到本地存储
+    // 获取Session相关的localStorage key（使用chat的sessionId）
+    const getSessionKey = (key) => {
+      const sessionId = currentSessionId.value
+      const fullKey = sessionId ? `${key}_${sessionId}` : key
+      console.log('Getting localStorage key:', fullKey, 'for sessionId:', sessionId)
+      return fullKey
+    }
+
+    // 保存内容到本地存储（按Session隔离）
     const saveContent = () => {
-      localStorage.setItem('vueResumeMarkdown', markdownContent.value)
-      localStorage.setItem('vueResumeCSS', cssContent.value)
-      localStorage.setItem('vueResumeStyles', JSON.stringify(resumeStyles.value))
+      const sessionId = currentSessionId.value
+      if (!sessionId) {
+        console.warn('No sessionId, cannot save content')
+        return
+      }
+      
+      localStorage.setItem(getSessionKey('vueResumeMarkdown'), markdownContent.value)
+      localStorage.setItem(getSessionKey('vueResumeCSS'), cssContent.value)
+      localStorage.setItem(getSessionKey('vueResumeStyles'), JSON.stringify(resumeStyles.value))
       statusText.value = '内容已保存到本地'
     }
 
-    // 加载本地存储的内容
+    // 加载本地存储的内容（按Session隔离）
     const loadContent = () => {
-      const savedMarkdown = localStorage.getItem('vueResumeMarkdown')
-      const savedCSS = localStorage.getItem('vueResumeCSS')
-      const savedStyles = localStorage.getItem('vueResumeStyles')
+      const sessionId = currentSessionId.value
+      if (!sessionId) {
+        console.warn('No sessionId, loading default content')
+        markdownContent.value = defaultMarkdown
+        cssContent.value = defaultCSS
+        updatePreview()
+        return
+      }
+      
+      const savedMarkdown = localStorage.getItem(getSessionKey('vueResumeMarkdown'))
+      const savedCSS = localStorage.getItem(getSessionKey('vueResumeCSS'))
+      const savedStyles = localStorage.getItem(getSessionKey('vueResumeStyles'))
       
       if (savedMarkdown) {
         markdownContent.value = savedMarkdown
@@ -461,6 +485,18 @@ Huangdu Institute of Technology
       
       updatePreview()
     }
+
+    // 监听sessionId变化，切换Session时加载对应内容（使用chat的sessionId）
+    watch(() => currentSessionId.value, (newSessionId, oldSessionId) => {
+      console.log('SessionId changed in ResumeWorkspace:', { 
+        old: oldSessionId, 
+        new: newSessionId,
+        isChatSessionId: true
+      })
+      if (newSessionId) {
+        loadContent()
+      }
+    }, { immediate: false })
 
     // 监听共享的resume_md，更新markdownContent
     watch(() => resumeMd.value, (newMd, oldMd) => {
