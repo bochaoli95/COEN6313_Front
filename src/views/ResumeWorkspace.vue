@@ -381,39 +381,156 @@ Huangdu Institute of Technology
     }
 
     // 导出PDF
-    const exportPDF = () => {
+    const exportPDF = async () => {
+      if (mainTab.value !== 'preview') {
+        alert('请先切换到Preview标签页')
+        return
+      }
+      
       statusText.value = '正在导出PDF...'
       
-      // 创建新窗口进行打印
-      const printWindow = window.open('', '_blank')
-      
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>简历</title>
-          <style>
-            body { font-family: 'Times New Roman', serif; margin: 0; padding: 20px; }
-            ${cssContent.value}
+      try {
+        await nextTick()
+        
+        // 获取预览区域的DOM元素
+        const previewElement = document.getElementById('vue-smart-pages-preview')
+        if (!previewElement) {
+          throw new Error('找不到预览内容')
+        }
+        
+        // 获取所有相关的样式
+        const getAllStyles = () => {
+          let styles = ''
+          
+          // 1. 获取动态样式
+          const dynamicStyle = document.getElementById('dynamic-preview')
+          if (dynamicStyle) {
+            styles += dynamicStyle.textContent + '\n'
+          }
+          
+          // 2. 获取用户CSS
+          const userStyle = document.getElementById('user-preview')
+          if (userStyle) {
+            styles += userStyle.textContent + '\n'
+          }
+          
+          // 3. 获取SmartPages样式
+          const smartPagesStyle = document.getElementById('smart-pages-preview')
+          if (smartPagesStyle) {
+            styles += smartPagesStyle.textContent + '\n'
+          }
+          
+          // 4. 添加用户自定义CSS
+          if (cssContent.value) {
+            styles += cssContent.value.replaceAll('#vue-smart-pages-preview', '#vue-smart-pages-preview') + '\n'
+          }
+          
+          // 5. 添加打印样式
+          styles += `
             @media print {
-              body { margin: 0; padding: 0; }
+              body { 
+                margin: 0; 
+                padding: 0; 
+                background: white !important;
+              }
+              #vue-smart-pages-preview {
+                background: white !important;
+                color: black !important;
+              }
+              #vue-smart-pages-preview a {
+                color: black !important;
+              }
             }
-          </style>
-        </head>
-        <body>
-          <div id="vue-smart-pages-preview">${markdownContent.value}</div>
-        </body>
-        </html>
-      `)
-      
-      printWindow.document.close()
-      printWindow.focus()
-      
-      setTimeout(() => {
-        printWindow.print()
-        statusText.value = 'PDF导出完成'
-      }, 500)
+          `
+          
+          return styles
+        }
+        
+        // 获取渲染后的HTML内容
+        const htmlContent = previewElement.innerHTML
+        
+        // 创建打印窗口
+        const printWindow = window.open('', '_blank')
+        if (!printWindow) {
+          throw new Error('无法打开打印窗口，请检查浏览器弹窗设置')
+        }
+        
+        // 构建完整的HTML文档
+        const allStyles = getAllStyles()
+        const paperSize = resumeStyles.value.paper || 'A4'
+        const paperWidth = paperSize === 'A4' ? '210mm' : paperSize === 'US Letter' ? '216mm' : '216mm'
+        
+        printWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <title>Resume - PDF Export</title>
+            <style>
+              * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+              }
+              
+              body {
+                font-family: ${resumeStyles.value.fontEN.name || 'Verdana'}, ${resumeStyles.value.fontCJK.name || '华康宋体'};
+                font-size: ${resumeStyles.value.fontSize}px;
+                line-height: ${resumeStyles.value.lineHeight};
+                background: white;
+                color: black;
+                padding: 0;
+                margin: 0;
+              }
+              
+              #vue-smart-pages-preview {
+                width: ${paperWidth};
+                max-width: ${paperWidth};
+                margin: 0 auto;
+                background: white;
+                color: black;
+                padding: ${resumeStyles.value.marginV}px ${resumeStyles.value.marginH}px;
+              }
+              
+              ${allStyles}
+              
+              @page {
+                size: ${paperSize};
+                margin: 0;
+              }
+            </style>
+          </head>
+          <body>
+            <div id="vue-smart-pages-preview">${htmlContent}</div>
+          </body>
+          </html>
+        `)
+        
+        printWindow.document.close()
+        
+        // 等待内容加载完成后打印
+        printWindow.onload = () => {
+          setTimeout(() => {
+            printWindow.focus()
+            printWindow.print()
+            statusText.value = 'PDF导出完成'
+          }, 300)
+        }
+        
+        // 如果onload已经触发，直接打印
+        if (printWindow.document.readyState === 'complete') {
+          setTimeout(() => {
+            printWindow.focus()
+            printWindow.print()
+            statusText.value = 'PDF导出完成'
+          }, 300)
+        }
+        
+      } catch (error) {
+        console.error('导出PDF失败:', error)
+        statusText.value = '导出失败: ' + error.message
+        alert('导出PDF失败: ' + error.message)
+      }
     }
 
     // 重置内容
