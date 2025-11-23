@@ -47,8 +47,29 @@
 
     <!-- Chat panel -->
     <div class="card" style="display: flex; flex-direction: column; height: 100%; overflow: hidden;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0;">
-        <h2 style="color: #ececf1; font-size: 18px;">AI Resume Optimization Assistant</h2>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0; gap: 12px;">
+        <h2 style="color: #ececf1; font-size: 18px; flex: 1;">AI Resume Optimization Assistant</h2>
+        <select 
+          v-model="selectedModel" 
+          @change="switchModel"
+          :disabled="switchingModel"
+          style="
+            padding: 8px 12px;
+            border: 1px solid #565869;
+            border-radius: 6px;
+            background: #40414f;
+            color: #ececf1;
+            font-size: 14px;
+            cursor: pointer;
+            min-width: 180px;
+            outline: none;
+          "
+          :style="{ opacity: switchingModel ? 0.6 : 1, cursor: switchingModel ? 'not-allowed' : 'pointer' }"
+        >
+          <option v-for="model in availableModels" :key="model.id" :value="model.id">
+            {{ model.name || model.id }}
+          </option>
+        </select>
         <button class="btn btn-secondary" @click="createNewSession">New Chat</button>
       </div>
 
@@ -158,6 +179,9 @@ const sessionId = ref(null)
 const sessions = ref([])
 const editingSessionId = ref(null)
 const editingTitle = ref('')
+const availableModels = ref([])
+const selectedModel = ref('')
+const switchingModel = ref(false)
 
 onMounted(async () => {
   sessionId.value = route.params.sessionId
@@ -168,6 +192,8 @@ onMounted(async () => {
   }
   
   await loadSessions()
+  await loadModels()
+  await loadCurrentModel()
 
   if (sessionId.value) {
     await loadHistory()
@@ -272,6 +298,44 @@ const saveSessionTitle = async (id) => {
     console.error('Failed to update session title:', e)
     alert('Failed to update session title. Please try again.')
     cancelEditSession()
+  }
+}
+
+const loadModels = async () => {
+  try {
+    const response = await chatAPI.getAvailableModels()
+    if (response && response.models) {
+      availableModels.value = response.models
+    }
+  } catch (error) {
+    console.error('Failed to load available models:', error)
+  }
+}
+
+const loadCurrentModel = async () => {
+  try {
+    const response = await chatAPI.getCurrentModel()
+    if (response && response.model) {
+      selectedModel.value = response.model
+    }
+  } catch (error) {
+    console.error('Failed to load current model:', error)
+  }
+}
+
+const switchModel = async () => {
+  if (!selectedModel.value || switchingModel.value) return
+  
+  switchingModel.value = true
+  try {
+    await chatAPI.switchModel(selectedModel.value)
+    console.log('Model switched to:', selectedModel.value)
+  } catch (error) {
+    console.error('Failed to switch model:', error)
+    alert('Failed to switch model. Please try again.')
+    await loadCurrentModel()
+  } finally {
+    switchingModel.value = false
   }
 }
 

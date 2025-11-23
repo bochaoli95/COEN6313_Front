@@ -191,7 +191,10 @@ export const resumeFilesAPI = {
 export const chatAPI = {
   sendMessage: (messageData) => api.post('/resume/optimization/chat', messageData),
   getHistory: (userId, sessionId) => api.get(`/resume/optimization/history/${userId}/${sessionId}`),
-  health: () => api.get('/resume/optimization/health')
+  health: () => api.get('/resume/optimization/health'),
+  getAvailableModels: () => api.get('/resume/optimization/models'),
+  getCurrentModel: () => api.get('/resume/optimization/model/current'),
+  switchModel: (modelName) => api.post('/resume/optimization/model/switch', { model: modelName })
 }
 
 // Session API
