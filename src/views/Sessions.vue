@@ -20,7 +20,25 @@
       <div v-else>
         <div class="grid">
           <div v-for="session in sessions" :key="session.session_id" class="card">
-            <h3 style="margin-bottom: 10px; color: #ececf1;">{{ session.title || 'Untitled Session' }}</h3>
+            <div style="margin-bottom: 10px;">
+              <h3 
+                v-if="editingSessionId !== session.session_id"
+                @click="startEditSession(session.session_id, session.title)"
+                style="color: #ececf1; cursor: text; display: inline-block;"
+                title="Click to edit"
+              >
+                {{ session.title || 'Untitled Session' }}
+              </h3>
+              <input
+                v-else
+                v-model="editingTitle"
+                @blur="saveSessionTitle(session.session_id)"
+                @keyup.enter="saveSessionTitle(session.session_id)"
+                @keyup.esc="cancelEditSession"
+                style="width: 100%; padding: 8px; background: #40414f; border: 1px solid #565869; border-radius: 4px; color: #ececf1; font-size: 16px; font-weight: bold;"
+                autofocus
+              />
+            </div>
             <p style="color: #9ca3af; margin-bottom: 10px; font-size: 14px;">
               Created: {{ formatDate(session.created_at) }}
             </p>
@@ -28,7 +46,7 @@
               Messages: {{ session.messages?.length || 0 }}
             </p>
             <div style="display: flex; gap: 10px;">
-              <router-link :to="`/chat/${session.session_id}`" class="btn btn-primary" style="text-decoration: none; display: inline-block;">
+              <router-link :to="`/studio/${session.session_id}`" class="btn btn-primary" style="text-decoration: none; display: inline-block;">
                 Enter
               </router-link>
               <button @click="deleteSession(session.session_id)" class="btn btn-danger">Delete</button>
@@ -53,6 +71,8 @@ const authStore = useAuthStore()
 // Reactive state
 const sessions = ref([])
 const loading = ref(false)
+const editingSessionId = ref(null)
+const editingTitle = ref('')
 
 // Load sessions on component mount
 onMounted(() => {
@@ -108,5 +128,33 @@ const deleteSession = async (sessionId) => {
 const formatDate = (date) => {
   if (!date) return '-'
   return new Date(date).toLocaleString('en-US')
+}
+
+// Edit session title
+const startEditSession = (id, currentTitle) => {
+  editingSessionId.value = id
+  editingTitle.value = currentTitle || ''
+}
+
+const cancelEditSession = () => {
+  editingSessionId.value = null
+  editingTitle.value = ''
+}
+
+const saveSessionTitle = async (sessionId) => {
+  if (!editingTitle.value.trim()) {
+    cancelEditSession()
+    return
+  }
+  
+  try {
+    await sessionAPI.updateTitle(sessionId, editingTitle.value.trim())
+    await loadSessions()
+    cancelEditSession()
+  } catch (error) {
+    console.error('Failed to update session title:', error)
+    alert('Failed to update session title. Please try again.')
+    cancelEditSession()
+  }
 }
 </script>

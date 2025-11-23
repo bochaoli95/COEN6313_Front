@@ -19,7 +19,6 @@
       </div>
       
       <div class="content-area">
-        <!-- Preview模式 -->
         <div v-if="mainTab === 'preview'" class="preview-content">
           <ResumeRender
             ref="resumeRenderRef"
@@ -30,9 +29,7 @@
           />
         </div>
         
-        <!-- Markdown模式 -->
         <div v-else class="markdown-content">
-          <!-- 子标签：MD和CSS -->
           <div class="sub-tabs">
             <div 
               class="sub-tab" 
@@ -50,13 +47,12 @@
             </div>
           </div>
           
-          <!-- 编辑器内容 -->
           <div class="editor-content">
             <textarea
               v-if="currentTab === 'markdown'"
               v-model="markdownContent"
               class="editor"
-              placeholder="在这里输入Markdown内容..."
+              placeholder="Enter Markdown content..."
               @input="updatePreview"
             ></textarea>
             
@@ -64,7 +60,7 @@
               v-else
               v-model="cssContent"
               class="editor"
-              placeholder="在这里输入CSS样式..."
+              placeholder="Enter CSS styles..."
               @input="updatePreview"
             ></textarea>
           </div>
@@ -75,6 +71,7 @@
         <span>{{ statusText }}</span>
         <div>
           <button class="btn" @click="exportPDF">Export PDF</button>
+          <button class="btn" @click="savePDF">Save PDF</button>
           <button class="btn btn-secondary" @click="resetContent">Reset</button>
         </div>
       </div>
@@ -85,6 +82,9 @@
 <script>
 import { ref, onMounted, watch, nextTick, inject } from 'vue'
 import ResumeRender from '../components/ResumeRender.vue'
+import html2pdf from 'html2pdf.js'
+import { resumeFilesAPI } from '../services/api'
+import { useAuthStore } from '../stores/auth'
 
 export default {
   name: 'App',
@@ -92,21 +92,16 @@ export default {
     ResumeRender
   },
   setup() {
-    // 注入共享的resume_md和sessionId
     const resumeMd = inject('resumeMd', ref(''))
     const currentSessionId = inject('currentSessionId', ref(null))
     
-    console.log('ResumeWorkspace: resumeMd injected', resumeMd)
-    
-    // 响应式数据
-    const mainTab = ref('markdown') // 'markdown' 或 'preview'
-    const currentTab = ref('markdown') // 'markdown' 或 'css' (在Markdown模式下的子标签)
+    const mainTab = ref('markdown')
+    const currentTab = ref('markdown')
     const markdownContent = ref('')
     const cssContent = ref('')
-    const statusText = ref('就绪')
+    const statusText = ref('Ready')
     const resumeRenderRef = ref(null)
     
-    // 简历样式配置
     const resumeStyles = ref({
       marginV: 55,
       marginH: 30,
@@ -114,7 +109,7 @@ export default {
       paragraphSpace: 5,
       themeColor: '#000000',
       fontCJK: {
-        name: '华康宋体',
+        name: 'SimSun',
         fontFamily: 'HKST'
       },
       fontEN: {
@@ -124,7 +119,6 @@ export default {
       paper: 'A4'
     })
     
-    // 默认内容 - 使用原项目的示例
     const defaultMarkdown = `---
 ---
 
@@ -356,76 +350,65 @@ Huangdu Institute of Technology
   }
 }`
 
-    // 切换标签页
     const switchTab = (tab) => {
       currentTab.value = tab
     }
 
-    // 更新预览
     const updatePreview = async () => {
       try {
-        statusText.value = '正在渲染...'
+        statusText.value = 'Rendering...'
         
         await nextTick()
         
-        // 强制更新ResumeRender组件
         if (resumeRenderRef.value) {
           resumeRenderRef.value.forceUpdate()
         }
         
         statusText.value = 'Done'
       } catch (error) {
-        console.error('渲染错误:', error)
-        statusText.value = '渲染失败: ' + error.message
+        console.error('Render error:', error)
+        statusText.value = 'Render failed: ' + error.message
       }
     }
 
-    // 导出PDF
     const exportPDF = async () => {
       if (mainTab.value !== 'preview') {
-        alert('请先切换到Preview标签页')
+        alert('Please switch to Preview tab first')
         return
       }
       
-      statusText.value = '正在导出PDF...'
+      statusText.value = 'Exporting PDF...'
       
       try {
         await nextTick()
         
-        // 获取预览区域的DOM元素
         const previewElement = document.getElementById('vue-smart-pages-preview')
         if (!previewElement) {
-          throw new Error('找不到预览内容')
+          throw new Error('Preview content not found')
         }
         
-        // 获取所有相关的样式
         const getAllStyles = () => {
           let styles = ''
           
-          // 1. 获取动态样式
           const dynamicStyle = document.getElementById('dynamic-preview')
           if (dynamicStyle) {
             styles += dynamicStyle.textContent + '\n'
           }
           
-          // 2. 获取用户CSS
           const userStyle = document.getElementById('user-preview')
           if (userStyle) {
             styles += userStyle.textContent + '\n'
           }
           
-          // 3. 获取SmartPages样式
           const smartPagesStyle = document.getElementById('smart-pages-preview')
           if (smartPagesStyle) {
             styles += smartPagesStyle.textContent + '\n'
           }
           
-          // 4. 添加用户自定义CSS
           if (cssContent.value) {
             styles += cssContent.value.replaceAll('#vue-smart-pages-preview', '#vue-smart-pages-preview') + '\n'
           }
           
-          // 5. 添加打印样式
           styles += `
             @media print {
               body { 
@@ -446,16 +429,13 @@ Huangdu Institute of Technology
           return styles
         }
         
-        // 获取渲染后的HTML内容
         const htmlContent = previewElement.innerHTML
         
-        // 创建打印窗口
         const printWindow = window.open('', '_blank')
         if (!printWindow) {
-          throw new Error('无法打开打印窗口，请检查浏览器弹窗设置')
+          throw new Error('Cannot open print window, please check browser popup settings')
         }
         
-        // 构建完整的HTML文档
         const allStyles = getAllStyles()
         const paperSize = resumeStyles.value.paper || 'A4'
         const paperWidth = paperSize === 'A4' ? '210mm' : paperSize === 'US Letter' ? '216mm' : '216mm'
@@ -474,7 +454,7 @@ Huangdu Institute of Technology
               }
               
               body {
-                font-family: ${resumeStyles.value.fontEN.name || 'Verdana'}, ${resumeStyles.value.fontCJK.name || '华康宋体'};
+                font-family: ${resumeStyles.value.fontEN.name || 'Verdana'}, ${resumeStyles.value.fontCJK.name || 'SimSun'};
                 font-size: ${resumeStyles.value.fontSize}px;
                 line-height: ${resumeStyles.value.lineHeight};
                 background: white;
@@ -508,68 +488,188 @@ Huangdu Institute of Technology
         
         printWindow.document.close()
         
-        // 等待内容加载完成后打印
         printWindow.onload = () => {
           setTimeout(() => {
             printWindow.focus()
             printWindow.print()
-            statusText.value = 'PDF导出完成'
+            statusText.value = 'PDF exported'
           }, 300)
         }
         
-        // 如果onload已经触发，直接打印
         if (printWindow.document.readyState === 'complete') {
           setTimeout(() => {
             printWindow.focus()
             printWindow.print()
-            statusText.value = 'PDF导出完成'
+            statusText.value = 'PDF exported'
           }, 300)
         }
         
       } catch (error) {
-        console.error('导出PDF失败:', error)
-        statusText.value = '导出失败: ' + error.message
-        alert('导出PDF失败: ' + error.message)
+        console.error('Export PDF failed:', error)
+        statusText.value = 'Export failed: ' + error.message
+        alert('Export PDF failed: ' + error.message)
       }
     }
 
-    // 重置内容
+    const savePDF = async () => {
+      if (mainTab.value !== 'preview') {
+        alert('Please switch to Preview tab first')
+        return
+      }
+      
+      const authStore = useAuthStore()
+      const userId = authStore.userId
+      
+      if (!userId) {
+        alert('Please login first')
+        return
+      }
+      
+      statusText.value = 'Generating PDF...'
+      
+      try {
+        await nextTick()
+        
+        const previewElement = document.getElementById('vue-smart-pages-preview')
+        if (!previewElement) {
+          throw new Error('Preview content not found')
+        }
+        
+        const getAllStyles = () => {
+          let styles = ''
+          
+          const dynamicStyle = document.getElementById('dynamic-preview')
+          if (dynamicStyle) {
+            styles += dynamicStyle.textContent + '\n'
+          }
+          
+          const userStyle = document.getElementById('user-preview')
+          if (userStyle) {
+            styles += userStyle.textContent + '\n'
+          }
+          
+          const smartPagesStyle = document.getElementById('smart-pages-preview')
+          if (smartPagesStyle) {
+            styles += smartPagesStyle.textContent + '\n'
+          }
+          
+          if (cssContent.value) {
+            styles += cssContent.value.replaceAll('#vue-smart-pages-preview', '#vue-smart-pages-preview') + '\n'
+          }
+          
+          styles += `
+            @media print {
+              body { 
+                margin: 0; 
+                padding: 0; 
+                background: white !important;
+              }
+              #vue-smart-pages-preview {
+                background: white !important;
+                color: black !important;
+              }
+              #vue-smart-pages-preview a {
+                color: black !important;
+              }
+            }
+          `
+          
+          return styles
+        }
+        
+        const paperSize = resumeStyles.value.paper || 'A4'
+        const paperFormat = paperSize.toLowerCase().replace(' ', '')
+        
+        const opt = {
+          margin: [resumeStyles.value.marginV / 3.78, resumeStyles.value.marginH / 3.78],
+          filename: `resume_${Date.now()}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { 
+            scale: 2, 
+            useCORS: true,
+            backgroundColor: '#ffffff'
+          },
+          jsPDF: { 
+            unit: 'mm', 
+            format: paperFormat === 'usletter' ? 'letter' : paperFormat === 'uslegal' ? 'legal' : 'a4',
+            orientation: 'portrait' 
+          }
+        }
+        
+        statusText.value = 'Converting to PDF...'
+        
+        const pdfBlob = await html2pdf().set(opt).from(previewElement).outputPdf('blob')
+        
+        const fileName = `resume_${Date.now()}.pdf`
+        const formData = new FormData()
+        formData.append('file', pdfBlob, fileName)
+        formData.append('file_name', fileName)
+        
+        // Debug: Log FormData contents
+        console.log('📤 FormData Debug Info:')
+        console.log('  - fileName:', fileName)
+        console.log('  - pdfBlob type:', pdfBlob.constructor.name)
+        console.log('  - pdfBlob size:', pdfBlob.size, 'bytes')
+        console.log('  - FormData entries:')
+        for (const [key, value] of formData.entries()) {
+          if (value instanceof File || value instanceof Blob) {
+            console.log(`    ${key}:`, {
+              type: value.constructor.name,
+              name: value.name || 'N/A',
+              size: value.size,
+              contentType: value.type || 'N/A'
+            })
+          } else {
+            console.log(`    ${key}:`, value)
+          }
+        }
+        
+        statusText.value = 'Uploading PDF...'
+        
+        await resumeFilesAPI.create(formData)
+        
+        statusText.value = 'PDF saved successfully'
+        
+        setTimeout(() => {
+          statusText.value = 'Ready'
+        }, 2000)
+        
+      } catch (error) {
+        console.error('Save PDF failed:', error)
+        statusText.value = 'Save failed: ' + (error.userMessage || error.message)
+        alert('Save PDF failed: ' + (error.userMessage || error.message))
+      }
+    }
+
     const resetContent = () => {
-      if (confirm('确定要重置所有内容吗？')) {
+      if (confirm('Reset all content?')) {
         markdownContent.value = defaultMarkdown
         cssContent.value = defaultCSS
         updatePreview()
-        statusText.value = '内容已重置'
+        statusText.value = 'Content reset'
       }
     }
 
-    // 获取Session相关的localStorage key（使用chat的sessionId）
     const getSessionKey = (key) => {
       const sessionId = currentSessionId.value
       const fullKey = sessionId ? `${key}_${sessionId}` : key
-      console.log('Getting localStorage key:', fullKey, 'for sessionId:', sessionId)
       return fullKey
     }
 
-    // 保存内容到本地存储（按Session隔离）
     const saveContent = () => {
       const sessionId = currentSessionId.value
       if (!sessionId) {
-        console.warn('No sessionId, cannot save content')
         return
       }
       
       localStorage.setItem(getSessionKey('vueResumeMarkdown'), markdownContent.value)
       localStorage.setItem(getSessionKey('vueResumeCSS'), cssContent.value)
       localStorage.setItem(getSessionKey('vueResumeStyles'), JSON.stringify(resumeStyles.value))
-      statusText.value = '内容已保存到本地'
     }
 
-    // 加载本地存储的内容（按Session隔离）
     const loadContent = () => {
       const sessionId = currentSessionId.value
       if (!sessionId) {
-        console.warn('No sessionId, loading default content')
         markdownContent.value = defaultMarkdown
         cssContent.value = defaultCSS
         updatePreview()
@@ -596,52 +696,32 @@ Huangdu Institute of Technology
         try {
           resumeStyles.value = { ...resumeStyles.value, ...JSON.parse(savedStyles) }
         } catch (e) {
-          console.error('解析样式失败:', e)
+          console.error('Parse styles failed:', e)
         }
       }
       
       updatePreview()
     }
 
-    // 监听sessionId变化，切换Session时加载对应内容（使用chat的sessionId）
-    watch(() => currentSessionId.value, (newSessionId, oldSessionId) => {
-      console.log('SessionId changed in ResumeWorkspace:', { 
-        old: oldSessionId, 
-        new: newSessionId,
-        isChatSessionId: true
-      })
+    watch(() => currentSessionId.value, (newSessionId) => {
       if (newSessionId) {
         loadContent()
       }
     }, { immediate: false })
 
-    // 监听共享的resume_md，更新markdownContent
-    watch(() => resumeMd.value, (newMd, oldMd) => {
-      console.log('ResumeMd changed:', {
-        old: oldMd?.substring(0, 50),
-        new: newMd?.substring(0, 50),
-        hasContent: !!(newMd && newMd.trim()),
-        newMdType: typeof newMd,
-        newMdLength: newMd?.length
-      })
+    watch(() => resumeMd.value, (newMd) => {
       if (newMd && newMd.trim()) {
-        console.log('Updating markdownContent from resumeMd')
         markdownContent.value = newMd
         nextTick(() => {
           updatePreview()
-          console.log('Markdown content updated and preview refreshed')
         })
-      } else {
-        console.log('Skipping update: newMd is empty or whitespace')
       }
     }, { immediate: true })
 
-    // 监听内容变化，自动保存
     watch([markdownContent, cssContent, resumeStyles], () => {
       saveContent()
     }, { deep: true })
 
-    // 组件挂载时加载内容
     onMounted(() => {
       loadContent()
     })
@@ -657,6 +737,7 @@ Huangdu Institute of Technology
       switchTab,
       updatePreview,
       exportPDF,
+      savePDF,
       resetContent
     }
   }

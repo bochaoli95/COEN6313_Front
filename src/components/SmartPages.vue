@@ -66,7 +66,6 @@ export default {
     const smartPagesRef = ref(null)
     const pageId = `vue-smart-pages-${props.id}`
 
-    // 简化的CSS更新
     const updateCSS = () => {
       const existingStyle = document.getElementById(`smart-pages-${props.id}`)
       if (existingStyle) {
@@ -84,7 +83,6 @@ export default {
       document.head.appendChild(style)
     }
 
-    // 简化的分页逻辑
     const breakPage = () => {
       const element = document.getElementById(pageId)
       if (!element) return
@@ -106,7 +104,6 @@ export default {
       }
     }
 
-    // 解析页面
     const resolvePages = (delay = 0) => {
       updateCSS()
 
@@ -128,7 +125,6 @@ export default {
       else resolveBreak()
     }
 
-    // 简化的防抖函数
     let debounceTimer = null
     const debounce = (func, wait) => {
       return (...args) => {
@@ -137,9 +133,7 @@ export default {
       }
     }
 
-    // 监听变化
     onMounted(() => {
-      // 监听样式变化
       watch(
         () => [
           props.top,
@@ -154,13 +148,11 @@ export default {
         debounce(resolvePages, 200)
       )
 
-      // 字体更新等延迟操作
       watch(
         () => props.watchDelay,
         debounce(() => resolvePages(100), 200)
       )
 
-      // 初始化样式
       updateCSS()
     })
 

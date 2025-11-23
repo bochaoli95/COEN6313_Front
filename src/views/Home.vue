@@ -16,7 +16,7 @@
         <router-link v-if="isAuthenticated" to="/resumes" class="btn btn-primary" style="text-decoration: none;">
           Manage Resumes
         </router-link>
-        <router-link v-if="isAuthenticated" to="/chat" class="btn btn-secondary" style="text-decoration: none;">
+        <router-link v-if="isAuthenticated" to="/studio" class="btn btn-secondary" style="text-decoration: none;">
           AI Assistant
         </router-link>
       </div>
@@ -34,7 +34,7 @@
       <div class="card">
         <h2 style="color: #ececf1;">💬 AI Chat</h2>
         <p style="color: #9ca3af; margin: 10px 0;">Chat with AI assistant to optimize your resume</p>
-        <router-link to="/chat" class="btn btn-primary" style="text-decoration: none; display: inline-block;">
+        <router-link to="/studio" class="btn btn-primary" style="text-decoration: none; display: inline-block;">
           Start Chat
         </router-link>
       </div>

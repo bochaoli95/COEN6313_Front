@@ -20,14 +20,12 @@ import { ref, watch, computed } from 'vue'
 import SmartPages from './SmartPages.vue'
 import { renderMarkdown } from '../utils/markdown.js'
 
-// 纸张尺寸配置 - 复制原项目
 const PAPER = {
   A4: { w: 210, h: 297 },
   'US Letter': { w: 216, h: 279 },
   'US Legal': { w: 216, h: 356 }
 }
 
-// Chrome打印底部边距
 const CHROME_PRINT_BOTTOM = 20
 
 export default {
@@ -56,34 +54,28 @@ export default {
   setup(props) {
     const smartRef = ref(null)
 
-    // 获取纸张像素高度 - 复制原项目逻辑
     const getPaperPx = (paper, dimension) => {
       const config = PAPER[paper] || PAPER.A4
       const mmValue = dimension === 'h' ? config.h : config.w
-      return (mmValue * 3.78) // 1mm ≈ 3.78px
+      return (mmValue * 3.78)
     }
 
-    // 字体加载完成回调 - 复制原项目逻辑
     const onFontLoaded = (styles) => {
       return new Promise(resolve => {
-        // 模拟字体加载延迟
         setTimeout(resolve, 100)
       })
     }
 
-    // 强制更新 - 复制原项目逻辑
     const forceUpdate = () => {
       if (smartRef.value) {
         smartRef.value.resolvePages(100)
       }
     }
 
-    // 简化的样式更新
     const updateStyles = () => {
-      // 动态样式
       const dynamicCss = `
         #vue-smart-pages-${props.id} {
-          font-family: ${props.styles.fontEN.name || 'Verdana'}, ${props.styles.fontCJK.name || '华康宋体'};
+          font-family: ${props.styles.fontEN.name || 'Verdana'}, ${props.styles.fontCJK.name || 'SimSun'};
           font-size: ${props.styles.fontSize}px;
           line-height: ${props.styles.lineHeight};
         }
@@ -95,17 +87,14 @@ export default {
         }
       `
       
-      // 移除旧样式
       const oldDynamicStyle = document.getElementById(`dynamic-${props.id}`)
       if (oldDynamicStyle) oldDynamicStyle.remove()
       
-      // 添加动态样式
       const dynamicStyle = document.createElement('style')
       dynamicStyle.id = `dynamic-${props.id}`
       dynamicStyle.textContent = dynamicCss
       document.head.appendChild(dynamicStyle)
       
-      // 用户CSS
       if (props.css) {
         const userCss = props.css.replaceAll('#vue-smart-pages-preview', `#vue-smart-pages-${props.id}`)
         
@@ -119,7 +108,6 @@ export default {
       }
     }
 
-    // 监听样式变化
     watch(
       [() => props.styles, () => props.css],
       updateStyles,

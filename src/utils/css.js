@@ -1,12 +1,9 @@
-// 动态CSS注入工具 - 复制原项目的逻辑
 export const injectCSS = (css, id) => {
-  // 移除之前的样式
   const existingStyle = document.getElementById(id)
   if (existingStyle) {
     existingStyle.remove()
   }
 
-  // 添加新样式
   if (css.trim()) {
     const style = document.createElement('style')
     style.id = id
@@ -15,7 +12,6 @@ export const injectCSS = (css, id) => {
   }
 }
 
-// 主题色CSS
 export const themeColorCss = (styles, id) => {
   return (
     `#${id} :not(.resume-header-item) > a { color: ${styles.themeColor} }` +
@@ -24,7 +20,6 @@ export const themeColorCss = (styles, id) => {
   )
 }
 
-// 行高CSS
 export const lineHeightCss = (styles, id) => {
   const height = styles.lineHeight
   return (
@@ -34,29 +29,24 @@ export const lineHeightCss = (styles, id) => {
   )
 }
 
-// 段落间距CSS
 export const paragraphSpaceCss = (styles, id) => {
   return `#${id} h2 { margin-top: ${styles.paragraphSpace}px }`
 }
 
-// 字体CSS
 export const fontFamilyCss = (styles, id) => {
   const fontEN = styles.fontEN.fontFamily || styles.fontEN.name
   const fontCJK = styles.fontCJK.fontFamily || styles.fontCJK.name
   return `#${id} { font-family: ${fontEN}, ${fontCJK} }`
 }
 
-// 字体大小CSS
 export const fontSizeCss = (styles, id) => {
   return `#${id} { font-size: ${styles.fontSize}px }`
 }
 
-// 纸张CSS
 export const paperCss = (styles) => {
   return `@media print { @page { size: ${styles.paper}; } }`
 }
 
-// 设置动态CSS
 export const setDynamicCss = (styles, id) => {
   const pageId = `vue-smart-pages-${id}`
 
@@ -71,7 +61,6 @@ export const setDynamicCss = (styles, id) => {
   injectCSS(content, `markdown-resume-dynamic-${id}`)
 }
 
-// 设置骨干CSS
 export const setBackboneCss = (css, id) => {
   const PREVIEW_SELECTOR = '#vue-smart-pages-preview'
   if (id !== 'preview') css = css.replaceAll(PREVIEW_SELECTOR, `#vue-smart-pages-${id}`)
@@ -79,5 +68,4 @@ export const setBackboneCss = (css, id) => {
   injectCSS(css, `markdown-resume-backbone-${id}`)
 }
 
-// 常量定义
 export const PREVIEW_SELECTOR = '#vue-smart-pages-preview'

@@ -24,7 +24,6 @@ const parseFrontMatter = (content) => {
     const [, frontmatterStr, body] = frontmatterMatch
     let attributes = {}
     
-    // 简单解析frontmatter
     const lines = frontmatterStr.split('\n')
     lines.forEach(line => {
       const [key, ...valueParts] = line.split(':')
@@ -74,7 +73,6 @@ const resolveCrossref = (html) => {
     return match
   })
   
-  // 在文档末尾添加引用列表
   if (crossrefList.length > 0) {
     let crossrefHtml = '\n\n<ul class="crossref-list">'
     crossrefList.forEach((item, index) => {

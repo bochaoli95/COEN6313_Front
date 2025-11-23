@@ -16,6 +16,11 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`
     }
     
+    // If data is FormData, remove Content-Type to let browser set it with boundary
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type']
+    }
+    
     // Log request details in development mode
     if (import.meta.env.DEV) {
       const fullUrl = `${config.baseURL}${config.url}`
@@ -23,7 +28,7 @@ api.interceptors.request.use(
         baseURL: config.baseURL,
         url: config.url,
         fullURL: fullUrl,
-        data: config.data,
+        data: config.data instanceof FormData ? '[FormData]' : config.data,
         params: config.params,
         headers: {
           ...config.headers,
@@ -166,7 +171,10 @@ export const resumesAPI = {
 // Resume Files API
 export const resumeFilesAPI = {
   getAll: () => api.get('/resume-files/'),
-  create: (fileData) => api.post('/resume-files/', fileData),
+  create: (formData) => {
+    // Don't set Content-Type manually for FormData - axios will automatically set it with boundary
+    return api.post('/resume-files/', formData)
+  },
   getByUserId: (userId) => api.get(`/resume-files/user/${userId}`),
   getById: (fileId) => api.get(`/resume-files/${fileId}`),
   delete: (fileId) => api.delete(`/resume-files/${fileId}`)
@@ -184,6 +192,7 @@ export const sessionAPI = {
   getAllByUserId: (userId) => api.get(`/session/user/${userId}`),
   create: (sessionData) => api.post('/session/', sessionData),
   getById: (sessionId) => api.get(`/session/${sessionId}`),
+  updateTitle: (sessionId, title) => api.patch(`/session/${sessionId}/title`, { title }),
   delete: (sessionId) => api.delete(`/session/${sessionId}`),
   getHistory: (sessionId) => api.get(`/session/${sessionId}/history`)
 }

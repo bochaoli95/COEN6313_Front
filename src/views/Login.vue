@@ -68,8 +68,8 @@ const handleLogin = async () => {
   error.value = ''
   try {
     await authStore.login(form.value)
-    // Redirect to resumes page after successful login
-    router.push('/resumes')
+    // Redirect to resume-files page after successful login
+    router.push('/resume-files')
   } catch (err) {
     // Enhanced error handling with detailed messages
     console.error('Login error:', err)

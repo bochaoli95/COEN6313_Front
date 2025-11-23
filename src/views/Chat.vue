@@ -22,8 +22,25 @@
             alignItems: 'center'
           }"
         >
-          <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;">{{ s.title || 'Untitled' }}</span>
-          <button class="btn btn-secondary" style="padding: 4px 8px;" @click.stop="deleteExistingSession(s.session_id)">Del</button>
+          <span 
+            v-if="editingSessionId !== s.session_id"
+            @click.stop="startEditSession(s.session_id, s.title)"
+            style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; flex: 1; cursor: text;"
+            title="Click to edit"
+          >
+            {{ s.title || 'Untitled' }}
+          </span>
+          <input
+            v-else
+            v-model="editingTitle"
+            @blur="saveSessionTitle(s.session_id)"
+            @keyup.enter="saveSessionTitle(s.session_id)"
+            @keyup.esc="cancelEditSession"
+            @click.stop
+            style="flex: 1; padding: 4px 8px; background: #40414f; border: 1px solid #565869; border-radius: 4px; color: #ececf1; font-size: 14px; max-width: 120px;"
+            autofocus
+          />
+          <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px; margin-left: 8px;" @click.stop="deleteExistingSession(s.session_id)">Del</button>
         </div>
       </div>
     </aside>
@@ -92,46 +109,37 @@ import { useRoute } from 'vue-router'
 import { chatAPI, sessionAPI } from '../services/api'
 import { useAuthStore } from '../stores/auth'
 
-// 注入更新resume_md和sessionId的函数
 const updateResumeMd = inject('updateResumeMd', null)
 const updateSessionId = inject('updateSessionId', null)
 
-// Route and store setup
 const route = useRoute()
 const authStore = useAuthStore()
 
-// 清理resume_md的辅助函数
 const cleanResumeMd = (md) => {
   if (!md || typeof md !== 'string') return md || ''
   
   let cleaned = md.trim()
   
-  // 1. 尝试解析完整JSON对象
   try {
     const parsed = JSON.parse(cleaned)
     if (parsed.resume_md) return parsed.resume_md
     if (parsed.message) return parsed.message
     if (typeof parsed === 'string') return parsed
   } catch (e) {
-    // 不是完整JSON，继续处理
   }
   
-  // 2. 尝试提取JSON对象中的message或resume_md字段值
   const jsonObjectMatch = cleaned.match(/\{[^}]*["']?(?:message|resume_md)["']?\s*:\s*["']([^"']*(?:\\.[^"']*)*)["'][^}]*\}/i)
   if (jsonObjectMatch && jsonObjectMatch[1]) {
     cleaned = jsonObjectMatch[1]
   } else {
-    // 3. 移除开头的JSON key格式
     cleaned = cleaned.replace(/^[^"]*["']?(?:message|resume_md)["']?\s*:\s*["']?/i, '')
     cleaned = cleaned.replace(/["']?\s*[,}]\s*$/i, '')
     cleaned = cleaned.replace(/["']\s*$/i, '')
   }
   
-  // 4. 移除markdown代码块标记
   cleaned = cleaned.replace(/^```(?:markdown)?\s*/i, '')
   cleaned = cleaned.replace(/\s*```$/i, '')
   
-  // 5. 处理JSON转义字符
   cleaned = cleaned.replace(/\\\\/g, '\\ESCAPED_BACKSLASH\\')
   cleaned = cleaned.replace(/\\n/g, '\n')
   cleaned = cleaned.replace(/\\r/g, '\r')
@@ -142,37 +150,30 @@ const cleanResumeMd = (md) => {
   
   return cleaned.trim()
 }
-
-// Reactive state
 const messages = ref([])
 const currentMessage = ref('')
 const sending = ref(false)
 const messagesContainer = ref(null)
 const sessionId = ref(null)
 const sessions = ref([])
+const editingSessionId = ref(null)
+const editingTitle = ref('')
 
-// Initialize session on component mount
 onMounted(async () => {
   sessionId.value = route.params.sessionId
   const userId = authStore.userId
   
-  // 通知ResumeWorkspace当前Session
   if (sessionId.value && updateSessionId) {
     updateSessionId(sessionId.value)
   }
   
-  // Load sessions for sidebar
   await loadSessions()
 
   if (sessionId.value) {
-    // Load existing session history
     await loadHistory()
   }
-
 })
 
-
-// Load chat history for current session
 const loadHistory = async () => {
   const userId = authStore.userId
   if (!sessionId.value || !userId) return
@@ -188,7 +189,6 @@ const loadHistory = async () => {
   }
 }
 
-// Load user's sessions for sidebar
 const loadSessions = async () => {
   const userId = authStore.userId
   if (!userId) return
@@ -199,21 +199,17 @@ const loadSessions = async () => {
   }
 }
 
-// Select a session from sidebar
 const selectSession = async (id) => {
   if (!id) return
   sessionId.value = id
   
-  // 通知ResumeWorkspace切换Session（使用chat的sessionId）
   if (updateSessionId) {
-    console.log('Switching to session:', id)
     updateSessionId(id)
   }
   
   await loadHistory()
 }
 
-// Create a new session
 const createNewSession = async () => {
   const userId = authStore.userId
   if (!userId) return
@@ -227,7 +223,6 @@ const createNewSession = async () => {
     const created = await sessionAPI.create(newSession)
     sessionId.value = created.session_id
     
-    // 通知ResumeWorkspace切换Session
     if (updateSessionId) {
       updateSessionId(sessionId.value)
     }
@@ -239,7 +234,6 @@ const createNewSession = async () => {
   }
 }
 
-// Delete a session
 const deleteExistingSession = async (id) => {
   if (!confirm('Delete this session?')) return
   try {
@@ -254,7 +248,33 @@ const deleteExistingSession = async (id) => {
   }
 }
 
-// Auto-scroll to bottom when messages change
+const startEditSession = (id, currentTitle) => {
+  editingSessionId.value = id
+  editingTitle.value = currentTitle || ''
+}
+
+const cancelEditSession = () => {
+  editingSessionId.value = null
+  editingTitle.value = ''
+}
+
+const saveSessionTitle = async (id) => {
+  if (!editingTitle.value.trim()) {
+    cancelEditSession()
+    return
+  }
+  
+  try {
+    await sessionAPI.updateTitle(id, editingTitle.value.trim())
+    await loadSessions()
+    cancelEditSession()
+  } catch (e) {
+    console.error('Failed to update session title:', e)
+    alert('Failed to update session title. Please try again.')
+    cancelEditSession()
+  }
+}
+
 watch(messages, () => {
   nextTick(() => {
     if (messagesContainer.value) {
@@ -263,12 +283,10 @@ watch(messages, () => {
   })
 }, { deep: true })
 
-// Send message to AI assistant
 const sendMessage = async () => {
   const userId = authStore.userId
   if (!currentMessage.value.trim() || !userId || !sessionId.value) return
 
-  // Add user message to local messages
   const userMessage = {
     role: 'user',
     content: currentMessage.value,
@@ -280,7 +298,6 @@ const sendMessage = async () => {
   currentMessage.value = ''
   sending.value = true
 
-  // Add assistant placeholder with spinner
   const assistantPlaceholder = {
     role: 'assistant',
     content: '',
@@ -290,14 +307,12 @@ const sendMessage = async () => {
   messages.value.push(assistantPlaceholder)
 
   try {
-    // Send message to API
     const response = await chatAPI.sendMessage({
       user_id: userId,
       session_id: sessionId.value,
       message: messageToSend
     })
 
-    // Extract assistant text from different response formats
     const extractAssistantText = (resp) => {
       if (!resp) return ''
       if (typeof resp === 'string') return resp
@@ -314,7 +329,6 @@ const sendMessage = async () => {
     }
 
     const assistantText = extractAssistantText(response)
-    // Replace placeholder content
     const idx = messages.value.findIndex(m => m.loading)
     if (idx !== -1) {
       messages.value[idx] = {
@@ -325,24 +339,14 @@ const sendMessage = async () => {
       }
     }
     
-    // 更新Resume的markdown内容
     if (response.resume_md && updateResumeMd) {
       const cleanedMd = cleanResumeMd(response.resume_md)
-      console.log('Updating resume_md:', cleanedMd.substring(0, 100) + '...')
       updateResumeMd(cleanedMd)
-    } else {
-      console.log('No resume_md in response or updateResumeMd not available', {
-        hasResumeMd: !!response.resume_md,
-        hasUpdateFn: !!updateResumeMd,
-        response: response
-      })
     }
     
-    // If still empty, try reloading from history
     if (!assistantText) await loadHistory()
   } catch (error) {
     console.error('Failed to send message:', error)
-    // Replace placeholder with error
     const idx = messages.value.findIndex(m => m.loading)
     if (idx !== -1) {
       messages.value[idx] = {

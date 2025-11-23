@@ -51,9 +51,10 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
-    path: '/studio',    
+    path: '/studio/:sessionId?',    
     name: 'Studio',
     component: () => import('../views/Studio.vue'),
+    meta: { requiresAuth: true }
   },
 ]
 

@@ -183,8 +183,8 @@ const formatDate = (date) => {
   return new Date(date).toLocaleString('en-US')
 }
 
-// Navigate to Chat page to start optimization
+// Navigate to Studio page to start optimization
 const goChat = () => {
-  router.push('/chat')
+  router.push('/studio')
 }
 </script>
