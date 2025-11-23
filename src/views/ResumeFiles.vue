@@ -20,7 +20,25 @@
       <div v-else>
         <div class="grid">
           <div v-for="file in files" :key="file.file_id" class="card">
-            <h3 style="margin-bottom: 10px; color: #ececf1;">{{ file.file_id }}</h3>
+            <div style="margin-bottom: 10px;">
+              <h3 
+                v-if="editingFileId !== file.file_id"
+                @click="startEditFileName(file.file_id, file.file_name || file.file_id)"
+                style="color: #ececf1; cursor: text; display: inline-block;"
+                title="Click to edit"
+              >
+                {{ file.file_name || file.file_id }}
+              </h3>
+              <input
+                v-else
+                v-model="editingFileName"
+                @blur="saveFileName(file.file_id)"
+                @keyup.enter="saveFileName(file.file_id)"
+                @keyup.esc="cancelEditFileName"
+                style="width: 100%; padding: 8px; background: #40414f; border: 1px solid #565869; border-radius: 4px; color: #ececf1; font-size: 16px; font-weight: bold;"
+                autofocus
+              />
+            </div>
             <p style="color: #9ca3af; margin-bottom: 10px; font-size: 14px;">
               Created: {{ formatDate(file.created_at) }}
             </p>
@@ -44,6 +62,8 @@ import { useAuthStore } from '../stores/auth'
 const authStore = useAuthStore()
 const files = ref([])
 const loading = ref(false)
+const editingFileId = ref(null)
+const editingFileName = ref('')
 
 // Load files on component mount
 onMounted(() => {
@@ -88,5 +108,40 @@ const deleteFile = async (fileId) => {
 const formatDate = (date) => {
   if (!date) return '-'
   return new Date(date).toLocaleString('en-US')
+}
+
+// Edit file name
+const startEditFileName = (fileId, currentFileName) => {
+  editingFileId.value = fileId
+  // Remove .pdf extension if present for editing
+  editingFileName.value = currentFileName.replace(/\.pdf$/i, '')
+}
+
+const cancelEditFileName = () => {
+  editingFileId.value = null
+  editingFileName.value = ''
+}
+
+const saveFileName = async (fileId) => {
+  if (!editingFileName.value.trim()) {
+    cancelEditFileName()
+    return
+  }
+  
+  // Ensure .pdf extension
+  const newFileId = editingFileName.value.trim().endsWith('.pdf') 
+    ? editingFileName.value.trim() 
+    : `${editingFileName.value.trim()}.pdf`
+  
+  try {
+    await resumeFilesAPI.updateFileName(fileId, newFileId)
+    await loadFiles()
+    cancelEditFileName()
+  } catch (error) {
+    console.error('Failed to update file name:', error)
+    const errorMessage = error.userMessage || error.response?.data?.detail || error.message || 'Failed to update file name. Please try again.'
+    alert(errorMessage)
+    cancelEditFileName()
+  }
 }
 </script>

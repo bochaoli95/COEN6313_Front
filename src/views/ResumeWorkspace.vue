@@ -81,9 +81,10 @@
 
 <script>
 import { ref, onMounted, watch, nextTick, inject } from 'vue'
+import { useRoute } from 'vue-router'
 import ResumeRender from '../components/ResumeRender.vue'
 import html2pdf from 'html2pdf.js'
-import { resumeFilesAPI } from '../services/api'
+import { resumeFilesAPI, sessionAPI } from '../services/api'
 import { useAuthStore } from '../stores/auth'
 
 export default {
@@ -92,6 +93,7 @@ export default {
     ResumeRender
   },
   setup() {
+    const route = useRoute()
     const resumeMd = inject('resumeMd', ref(''))
     const currentSessionId = inject('currentSessionId', ref(null))
     
@@ -580,9 +582,46 @@ Huangdu Institute of Technology
         const paperSize = resumeStyles.value.paper || 'A4'
         const paperFormat = paperSize.toLowerCase().replace(' ', '')
         
+        // Get session title if available for filename
+        let fileName = `resume_${Date.now()}.pdf`
+        // Try to get sessionId from injected value or route params
+        const sessionIdToUse = currentSessionId.value || route.params.sessionId
+        console.log('🔍 Current Session ID (injected):', currentSessionId.value)
+        console.log('🔍 Session ID (route):', route.params.sessionId)
+        console.log('🔍 Using Session ID:', sessionIdToUse)
+        if (sessionIdToUse) {
+          try {
+            console.log('🔍 Getting session info for:', sessionIdToUse)
+            const session = await sessionAPI.getById(sessionIdToUse)
+            console.log('📋 Session data:', session)
+            const sessionTitle = session?.title || session?.session_title || null
+            console.log('📝 Session title:', sessionTitle)
+            if (sessionTitle && sessionTitle.trim() && sessionTitle !== 'Untitled' && sessionTitle !== 'Untitled Session') {
+              // Clean filename: remove invalid characters and limit length
+              const cleanTitle = sessionTitle
+                .replace(/[<>:"/\\|?*]/g, '_')
+                .replace(/\s+/g, '_')
+                .substring(0, 50)
+                .trim()
+              if (cleanTitle) {
+                fileName = `${cleanTitle}.pdf`
+                console.log('✅ Using session title as filename:', fileName)
+              }
+            } else {
+              console.log('ℹ️ Session title is default or empty, using default filename')
+            }
+          } catch (error) {
+            console.warn('⚠️ Failed to get session title, using default filename:', error)
+          }
+        } else {
+          console.log('ℹ️ No current session ID, using default filename')
+        }
+        
+        console.log('📄 Final filename:', fileName)
+        
         const opt = {
           margin: [resumeStyles.value.marginV / 3.78, resumeStyles.value.marginH / 3.78],
-          filename: `resume_${Date.now()}.pdf`,
+          filename: fileName.replace('.pdf', ''),
           image: { type: 'jpeg', quality: 0.98 },
           html2canvas: { 
             scale: 2, 
@@ -600,7 +639,6 @@ Huangdu Institute of Technology
         
         const pdfBlob = await html2pdf().set(opt).from(previewElement).outputPdf('blob')
         
-        const fileName = `resume_${Date.now()}.pdf`
         const formData = new FormData()
         formData.append('file', pdfBlob, fileName)
         formData.append('file_name', fileName)

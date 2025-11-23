@@ -177,6 +177,13 @@ export const resumeFilesAPI = {
   },
   getByUserId: (userId) => api.get(`/resume-files/user/${userId}`),
   getById: (fileId) => api.get(`/resume-files/${fileId}`),
+  updateFileName: (resumeId, newFileId) => {
+    const formData = new URLSearchParams()
+    formData.append('new_file_id', newFileId)
+    return api.put(`/resume-files/${resumeId}/file-id`, formData, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    })
+  },
   delete: (fileId) => api.delete(`/resume-files/${fileId}`)
 }
 
