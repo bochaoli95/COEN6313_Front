@@ -1,8 +1,9 @@
 import axios from 'axios'
 
 // Create axios instance with base configuration
+// Use environment variable for production, fallback to '/api' for development
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   headers: {
     'Content-Type': 'application/json'
   }
@@ -62,9 +63,9 @@ api.interceptors.response.use(
     }
 
     // Log detailed error information to console
-    console.group('❌ API Error Details')
+    console.group('API Error Details')
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-    console.error('🚨 ERROR DETAILS')
+    console.error('ERROR DETAILS')
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
     console.error('Status:', errorDetails.status || 'No Response', errorDetails.statusText || '')
     console.error('Method:', errorDetails.method || 'Unknown')
@@ -73,7 +74,7 @@ api.interceptors.response.use(
     console.error('Target Server:', 'http://127.0.0.1:8006' + errorDetails.url)
     
     if (errorDetails.data) {
-      console.error('\n📄 Response Data:')
+      console.error('\n Response Data:')
       console.error(JSON.stringify(errorDetails.data, null, 2))
     }
     
@@ -98,14 +99,14 @@ api.interceptors.response.use(
       window.location.href = '/login'
     } else if (error.response?.status === 500) {
       // Log 500 errors with extra details
-      console.error('\n🚨 SERVER ERROR (500)')
+      console.error('\n SERVER ERROR (500)')
       console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
       console.error('Request was sent to: http://127.0.0.1:8006' + errorDetails.url)
-      console.error('\n📄 Backend Response:')
+      console.error('\nBackend Response:')
       console.error(errorDetails.data || 'No response data')
       console.error('\n💡 Troubleshooting Steps:')
-      console.error('  1. ✅ Proxy is working (request reached backend)')
-      console.error('  2. ❌ Backend returned 500 error')
+      console.error('  1. Proxy is working (request reached backend)')
+      console.error('  2. Backend returned 500 error')
       console.error('  3. Check backend server terminal/logs for detailed error')
       console.error('  4. Common causes:')
       console.error('     - Database connection error')
@@ -115,16 +116,16 @@ api.interceptors.response.use(
       console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n')
     } else if (!error.response) {
       // Network error or server not reachable
-      console.error('🌐 Network Error: Server may be down or unreachable')
+      console.error('Network Error: Server may be down or unreachable')
       console.error('Error:', error.message)
-      console.error('💡 Troubleshooting:')
+      console.error('Troubleshooting:')
       console.error('  1. Check if backend is running: curl http://localhost:8006/api/resume/optimization/health')
       console.error('  2. Verify proxy configuration in vite.config.js')
       console.error('  3. Check browser console for CORS errors')
       
       // Check if it's a CORS error
       if (error.message?.includes('CORS') || error.message?.includes('cross-origin')) {
-        console.error('🚫 CORS Error detected!')
+        console.error('CORS Error detected!')
         console.error('   - The request was blocked by CORS policy')
         console.error('   - Verify backend CORS configuration')
         console.error('   - Check if backend allows origin: http://localhost:3000')
