@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://resume-backend:8006/api}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://20.151.88.17:8006/api}
     container_name: resume-frontend
     ports:
       - "3000:3000"
