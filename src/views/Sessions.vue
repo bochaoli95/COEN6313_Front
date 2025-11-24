@@ -23,9 +23,9 @@
             <div style="margin-bottom: 10px;">
               <h3 
                 v-if="editingSessionId !== session.session_id"
-                @click="startEditSession(session.session_id, session.title)"
-                style="color: #ececf1; cursor: text; display: inline-block;"
-                title="Click to edit"
+                @dblclick="startEditSession(session.session_id, session.title)"
+                style="color: #ececf1; cursor: default; display: inline-block;"
+                title="Double-click to edit"
               >
                 {{ session.title || 'Untitled Session' }}
               </h3>

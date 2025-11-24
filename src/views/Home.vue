@@ -13,10 +13,7 @@
         <router-link v-if="!isAuthenticated" to="/register" class="btn btn-primary" style="text-decoration: none;">
           Get Started
         </router-link>
-        <router-link v-if="isAuthenticated" to="/resumes" class="btn btn-primary" style="text-decoration: none;">
-          Manage Resumes
-        </router-link>
-        <router-link v-if="isAuthenticated" to="/studio" class="btn btn-secondary" style="text-decoration: none;">
+        <router-link v-if="isAuthenticated" to="/studio" class="btn btn-primary" style="text-decoration: none;">
           AI Assistant
         </router-link>
       </div>
@@ -24,13 +21,6 @@
 
     <!-- Feature cards - shown when authenticated -->
     <div class="grid" v-if="isAuthenticated">
-      <div class="card">
-        <h2 style="color: #ececf1;">📄 My Resumes</h2>
-        <p style="color: #9ca3af; margin: 10px 0;">Manage and optimize your resumes</p>
-        <router-link to="/resumes" class="btn btn-primary" style="text-decoration: none; display: inline-block;">
-          View
-        </router-link>
-      </div>
       <div class="card">
         <h2 style="color: #ececf1;">💬 AI Chat</h2>
         <p style="color: #9ca3af; margin: 10px 0;">Chat with AI assistant to optimize your resume</p>
@@ -42,6 +32,13 @@
         <h2 style="color: #ececf1;">📁 File Management</h2>
         <p style="color: #9ca3af; margin: 10px 0;">View and manage your resume files</p>
         <router-link to="/resume-files" class="btn btn-primary" style="text-decoration: none; display: inline-block;">
+          View
+        </router-link>
+      </div>
+      <div class="card">
+        <h2 style="color: #ececf1;">📋 Sessions</h2>
+        <p style="color: #9ca3af; margin: 10px 0;">View and manage your chat sessions</p>
+        <router-link to="/sessions" class="btn btn-primary" style="text-decoration: none; display: inline-block;">
           View
         </router-link>
       </div>

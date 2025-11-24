@@ -78,8 +78,8 @@ const handleRegister = async () => {
   error.value = ''
   try {
     await authStore.register(form.value)
-    // Redirect to resumes page after successful registration
-    router.push('/resumes')
+    // Redirect to resume files page after successful registration
+    router.push('/resume-files')
   } catch (err) {
     // Enhanced error handling with detailed messages
     console.error('Registration error:', err)

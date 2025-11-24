@@ -24,9 +24,9 @@
         >
           <span 
             v-if="editingSessionId !== s.session_id"
-            @click.stop="startEditSession(s.session_id, s.title)"
-            style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; flex: 1; cursor: text;"
-            title="Click to edit"
+            @dblclick.stop="startEditSession(s.session_id, s.title)"
+            style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; flex: 1; cursor: default;"
+            title="Double-click to edit"
           >
             {{ s.title || 'Untitled' }}
           </span>

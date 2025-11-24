@@ -21,12 +21,6 @@ const routes = [
     meta: { requiresGuest: true }
   },
   {
-    path: '/resumes',
-    name: 'Resumes',
-    component: () => import('../views/Resumes.vue'),
-    meta: { requiresAuth: true }
-  },
-  {
     path: '/resume-files',
     name: 'ResumeFiles',
     component: () => import('../views/ResumeFiles.vue'),
