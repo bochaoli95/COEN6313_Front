@@ -1,3 +1,4 @@
+version: "3.9"
 
 services:
   vue-frontend:
@@ -5,15 +6,9 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
+        # Backend API URL - directly accessible from container
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://20.151.88.17:8006/api}
     container_name: resume-frontend
     ports:
       - "3000:3000"
-    networks:
-      - resume-app-network
     restart: always
-
-networks:
-  resume-app-network:
-    external: true
-    name: resume-app-network

@@ -7,8 +7,9 @@ RUN npm install
 
 COPY . .
 
-# Build argument for API base URL (defaults to localhost:8006/api)
-ARG VITE_API_BASE_URL=http://localhost:8006/api
+# Build argument for API base URL
+# This will be overridden by docker-compose.yml build args
+ARG VITE_API_BASE_URL=http://20.151.88.17:8006/api
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
 RUN npm run build
